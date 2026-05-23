@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>AI Chatbot</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body class="dark-mode">
+
+    <div class="chat-container">
+
+        <!-- TOP BAR -->
+        <div class="top-bar">
+
+            <h1 id="bot-name">
+                AI Chatbot
+            </h1>
+
+            <!-- Theme Button -->
+            <button id="theme-btn"
+                    onclick="toggleTheme()">
+
+                ☀️ Light Mode
+
+            </button>
+
+        </div>
+
+        <!-- Rename Bot -->
+        <div class="rename-box">
+
+            <input type="text"
+                   id="rename-input"
+                   placeholder="Enter chatbot name">
+
+            <button onclick="changeBotName()">
+                Rename
+            </button>
+
+        </div>
+
+        <!-- CHAT BOX -->
+        <div id="chat-box"></div>
+
+        <!-- INPUT AREA -->
+        <div class="input-area">
+
+            <input type="text"
+                   id="user-input"
+                   placeholder="Type your message...">
+
+            <button onclick="sendMessage()">
+                Send
+            </button>
+
+        </div>
+
+    </div>
+
+<script>
+
+// Default Bot Name
+let chatbotName = "AI";
+
+// Rename Bot
+function changeBotName() {
+
+    let newName =
+        document.getElementById("rename-input").value;
+
+    if(newName.trim() !== "") {
+
+        chatbotName = newName;
+
+        document.getElementById("bot-name").innerText =
+            chatbotName;
+
+        document.getElementById("rename-input").value = "";
+    }
+}
+
+// Theme Toggle
+function toggleTheme() {
+
+    let body = document.body;
+
+    let themeBtn =
+        document.getElementById("theme-btn");
+
+    body.classList.toggle("light-mode");
+    body.classList.toggle("dark-mode");
+
+    if(body.classList.contains("light-mode")) {
+
+        themeBtn.innerHTML = "🌙 Dark Mode";
+
+    } else {
+
+        themeBtn.innerHTML = "☀️ Light Mode";
+    }
+}
+
+// Send Message
+async function sendMessage() {
+
+    let input =
+        document.getElementById("user-input");
+
+    let message = input.value;
+
+    if(message.trim() === "") {
+        return;
+    }
+
+    let chatBox =
+        document.getElementById("chat-box");
+
+    // USER MESSAGE
+    chatBox.innerHTML += `
+        <div class="user-msg">
+            You: ${message}
+        </div>
+    `;
+
+    input.value = "";
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // TYPING INDICATOR
+    let typingDiv =
+        document.createElement("div");
+
+    typingDiv.className = "bot-msg";
+
+    typingDiv.innerHTML =
+        `${chatbotName}:Typing...`;
+
+    chatBox.appendChild(typingDiv);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // SEND TO FLASK
+    const response = await fetch("/chat", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            message: message
+        })
+
+    });
+
+    const data = await response.json();
+
+    // REMOVE TYPING
+    typingDiv.remove();
+
+    // CREATE BOT MESSAGE
+    let botDiv =
+        document.createElement("div");
+
+    botDiv.className = "bot-msg";
+
+    chatBox.appendChild(botDiv);
+
+    // TYPING EFFECT
+    let fullText =
+        `${chatbotName}:${data.reply}`;
+
+    let index = 0;
+
+    function typeEffect() {
+
+        if(index < fullText.length) {
+
+            botDiv.innerHTML +=
+                fullText.charAt(index);
+
+            index++;
+
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
+
+            setTimeout(typeEffect, 20);
+        }
+    }
+
+    typeEffect();
+}
+
+// ENTER KEY SUPPORT
+document.getElementById("user-input")
+.addEventListener("keypress", function(event) {
+
+    if(event.key === "Enter") {
+        sendMessage();
+    }
+
+});
+
+</script>
+
+</body>
+</html>
